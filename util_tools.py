@@ -124,18 +124,21 @@ async def fetch_page_content(browser, url):
     from markitdown import MarkItDown
     from io import BytesIO
 
-    tab = await browser.get(url, new_tab=True)
-    await tab.sleep(5)
-    await tab.select('body')
-    content = await tab.get_content()
+    try:
+        tab = await browser.get(url, new_tab=True)
+        await tab.sleep(5)
+        await tab.select('body')
+        content = await tab.get_content()
 
-    # 使用 Readability-lxml 提取文章内容
-    doc = Document(content)
-    title = doc.title()
-    content = MarkItDown().convert(BytesIO(doc.summary().encode('utf-8'))).text_content
+        # 使用 Readability-lxml 提取文章内容
+        doc = Document(content)
+        title = doc.title()
+        content = MarkItDown().convert(BytesIO(doc.summary().encode('utf-8'))).text_content
 
-    await tab.close()  # 可选：立即关闭 tab，节省资源
-    return title, url, content
+        await tab.close()  # 可选：立即关闭 tab，节省资源
+        return title, url, content
+    except Exception as e:
+        return "NO_TITLE", url, "NO_CONTENT"
 
 @tool
 async def tool_web_search(english_query: str) -> list[str]:
@@ -151,7 +154,7 @@ async def tool_web_search(english_query: str) -> list[str]:
     import asyncio
 
     try:
-        search_urls = await get_search_urls(english_query)
+        search_urls = get_search_urls(english_query)
         browser = await zd.start(
             headless=True,
             browser_args=[
@@ -168,6 +171,8 @@ async def tool_web_search(english_query: str) -> list[str]:
         # 打印结果
         md_texts = ""
         for title, url, content in results:
+            if title == "NO_TITLE":
+                continue
             md_texts += f"# {title}\n\n{content}\n\n"
             print(f"✅ Fetched 「{title}」 {url}: {len(content)} characters")
     
