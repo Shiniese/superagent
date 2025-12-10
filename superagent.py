@@ -1,3 +1,6 @@
+# readline 库用于修复 input() 接收中文输入时的退格行为与编码问题
+import readline
+
 QUERY = input("请输入您的问题：")
 
 from util_tools import *
@@ -36,6 +39,7 @@ async def run_agent():
                 model=model_instruct,
                 max_tools=3,
             ),
+            FinalTranslateMiddleware()
         ], 
         checkpointer=checkpointer, 
     )
@@ -43,12 +47,12 @@ async def run_agent():
 
     while True:
         print(f'\n\n✅ 开始执行 Agent: "{QUERY}"')
-        print("──────────────────────")
 
         response = await agent.ainvoke(
             {"messages": [{"role": "user", "content": QUERY}]},
             config=config,
         )
+        print("──────────────────────")
 
         # Print final response, 将Markdown文本转换为Rich对象, 创建一个Console对象, 打印Markdown对象到控制台
         console = Console()
@@ -60,7 +64,7 @@ async def run_agent():
 
         user_input = input('请继续询问，如需开启新话题请输入 "new"，如需停止请输入 "quit"：')
         if user_input == "new":
-            print("=" * 100)
+            print("🆕" * 100)
             QUERY = input("\n\n请输入您的新问题：")
             config["configurable"]["thread_id"] += 1
         elif user_input == "quit":
