@@ -209,3 +209,85 @@ def translate_text(text: str, target_language: str) -> str:
     except Exception as e:
         print(f"Error text translating: {str(e)}")
         return f"Error text translating: {str(e)}"
+
+def download_audio(video_url: str) -> str:
+    """通过 yt_dlp 下载视频链接的音频"""
+
+    import yt_dlp
+    import tempfile
+    import os
+
+    try:
+        # 创建一个临时文件路径（自动管理，下载后手动清理）
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".m4a") as tmp_file:
+            tmp_path = tmp_file.name  # 临时文件路径
+            os.unlink(tmp_path) # 先删除临时文件，只是为了获取这个临时文件名，临时文件最后再手动自行删除
+
+        ydl_opts = {
+            'format': 'worstaudio/worst',
+            # ℹ️ See help(yt_dlp.postprocessor) for a list of available Postprocessors and their arguments
+            'postprocessors': [{  # Extract audio using ffmpeg
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': 'm4a',
+            }],
+            'outtmpl': tmp_path,  # 定义输出文件的路径和名称格式
+            'quiet' : True
+        }
+
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([video_url])
+
+        return tmp_path
+        
+    except Exception as e:
+        print(f"Error downloading audio: {str(e)}")
+        return f"Error downloading audio: {str(e)}"
+
+
+def audio_to_text(audio_path: str) -> str:
+    """把音频转换成文字"""
+
+    from faster_whisper import WhisperModel
+
+    try:
+        model_size = "large-v3"
+        # Run on GPU with FP16
+        model = WhisperModel(model_size, device="auto", compute_type="float16")
+        # or run on CPU with INT8
+        # model = WhisperModel(model_size, device="cpu", compute_type="int8")
+
+        segments, _ = model.transcribe(audio_path)
+        texts = ""
+        for segment in segments:
+            texts += segment.text + ", "
+
+        return texts
+    
+    except Exception as e:
+        print(f"Error transcribing audio to text: {str(e)}")
+        return f"Error transcribing audio to text: {str(e)}"
+
+@tool
+def tool_get_video_text_content(video_url: str) -> str:
+    """
+    获取视频 URL 的文本内容。  
+    适用于需要快速获取视频主要内容的场景，如教学视频、科普内容、短剧等。  
+
+    Args: 
+        video_url (str): 视频的URL地址，支持Bilibili、YouTube等主流平台的视频链接（例如：'https://www.bilibili.com/video/BV1UbUDBLEtX'）  
+    Returns: 
+        str: 视频的文本内容。  
+    """
+
+    import os
+
+    try:
+        audio_path = download_audio(video_url)
+        video_texts = audio_to_text(audio_path)
+        os.unlink(audio_path)  # 删除临时文件
+
+        return video_texts
+    
+    except Exception as e:
+        print(f"Error summarizing video: {str(e)}")
+        return f"Error summarizing video: {str(e)}"
