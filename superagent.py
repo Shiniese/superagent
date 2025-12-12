@@ -31,7 +31,7 @@ async def run_agent():
     agent = create_agent(
         model=model_instruct,
         system_prompt= DEFAULT_PROMPT,
-        tools=[tool_get_current_datetime, tool_web_search, tool_get_video_text_content, tool_get_current_weather], 
+        tools=[tool_get_current_datetime, tool_web_search, tool_get_video_text_content, tool_get_local_file_content, tool_get_current_weather], 
         middleware=[
             ToolMonitoringMiddleware(),
             TodoListMiddleware(),
