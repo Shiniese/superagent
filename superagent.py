@@ -3,16 +3,14 @@ import readline
 
 QUERY = input("请输入您的问题：")
 
-from util_tools import *
-from util_middlewares import *
-from util_models import *
-from util_prompts import *
+from util_tools import tool_get_current_datetime, tool_web_search, tool_get_video_text_content, tool_get_local_file_content, tool_get_current_weather
+from util_middlewares import ToolMonitoringMiddleware, FinalTranslateMiddleware
+from util_models import model_instruct
+from util_prompts import DEFAULT_PROMPT
 
 import asyncio
 
 from langchain.agents import create_agent
-from langchain.agents.middleware import TodoListMiddleware, ContextEditingMiddleware, ClearToolUsesEdit, LLMToolSelectorMiddleware
-from langchain.tools import tool
 from langgraph.checkpoint.memory import InMemorySaver
 
 
@@ -20,13 +18,12 @@ from rich.console import Console
 from rich.markdown import Markdown
 
 
-# Set up memory
-checkpointer = InMemorySaver()
-
-
 # Async function to run the agent
 async def run_agent():
     global QUERY
+
+    # Set up memory
+    checkpointer = InMemorySaver()
 
     agent = create_agent(
         model=model_instruct,
@@ -34,11 +31,6 @@ async def run_agent():
         tools=[tool_get_current_datetime, tool_web_search, tool_get_video_text_content, tool_get_local_file_content, tool_get_current_weather], 
         middleware=[
             ToolMonitoringMiddleware(),
-            TodoListMiddleware(),
-            LLMToolSelectorMiddleware(
-                model=model_instruct,
-                max_tools=3,
-            ),
             FinalTranslateMiddleware()
         ], 
         checkpointer=checkpointer, 

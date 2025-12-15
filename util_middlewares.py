@@ -10,7 +10,7 @@ from typing import Callable, Any
 # 引入第三方轻量库
 import langid
 
-from util_tools import translate_text
+from util_pub_func import translate_text
 
 class ToolMonitoringMiddleware(AgentMiddleware):
     def wrap_tool_call(
