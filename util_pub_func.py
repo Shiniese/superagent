@@ -23,7 +23,9 @@ def audio_to_text(audio_path: str) -> str:
         model = WhisperModel(model_size, device="auto")
 
         segments, _ = model.transcribe(audio_path)
-        texts = ", ".join(list(segments))
+        texts = ""
+        for segment in segments:
+            texts += segment.text + ", "
 
         return texts
     

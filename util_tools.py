@@ -121,9 +121,9 @@ def tool_get_video_text_content(video_url: str) -> str:
     from util_pub_func import download_audio, audio_to_text
 
     try:
+        audio_path = ""
         audio_path = download_audio(video_url)
         video_texts = audio_to_text(audio_path)
-        os.unlink(audio_path)  # 删除临时文件
 
         return video_texts
     
@@ -131,6 +131,9 @@ def tool_get_video_text_content(video_url: str) -> str:
         print(f"Error summarizing video: {str(e)}")
         return f"Error summarizing video: {str(e)}"
     
+    finally:
+        if audio_path:
+            os.unlink(audio_path)  # 删除临时文件
 
 @tool
 def tool_get_local_file_content(local_path: str, file_type: Literal["document", "audio"]) -> str:
