@@ -1,11 +1,13 @@
 from langchain.agents.middleware import (
     AgentMiddleware,
     AgentState,
+    ModelRequest, 
+    ModelResponse
 )
 from langchain.tools.tool_node import ToolCallRequest
-from langchain.messages import ToolMessage, AIMessage
+from langchain.messages import SystemMessage, ToolMessage, AIMessage
 from langgraph.types import Command
-from typing import Callable, Any
+from typing import Callable, Any, NotRequired
 
 # 引入第三方轻量库
 import langid
@@ -43,6 +45,95 @@ class ToolMonitoringMiddleware(AgentMiddleware):
             print(f"❌ '{request.tool_call['name']}' Tool failed: {e}")
             raise
 
+class SkillState(AgentState):
+    available_tools: NotRequired[list[str]]  # Track which skills have been loaded
+
+class SkillMiddleware(AgentMiddleware):  
+    """Middleware that injects skill descriptions into the system prompt."""
+
+    state_schema = SkillState
+
+    # Register the load_skill tool as a class variable
+
+    from util_tools import load_skill
+    
+    tools = [load_skill]  
+
+    def __init__(self):
+        """Initialize and generate the skills prompt from SKILLS."""
+        # Build skills prompt from the SKILLS list
+
+        from util_skills import SKILLS
+
+        skills_list = []
+        for skill in SKILLS:
+            skills_list.append(
+                f"- **{skill['name']}**: {skill['description']}"
+            )
+        self.skills_prompt = "\n".join(skills_list)
+
+    def wrap_model_call(
+        self,
+        request: ModelRequest,
+        handler: Callable[[ModelRequest], ModelResponse],
+    ) -> ModelResponse:
+        """Sync: Inject skill descriptions into system prompt."""
+
+        # 从 State 中读取已启用的工具列表
+        enabled_names = request.state.get("available_tools", [])
+        
+        # 过滤全局工具池
+        filtered_tools = [
+            t for t in request.tools 
+            if t.name in enabled_names or t.name == "load_skill"
+        ]
+
+        # Build the skills addendum
+        skills_addendum = ( 
+            f"\n\n## Available Skills\n\n{self.skills_prompt}\n\n"
+            "Use the load_skill tool when you need detailed information "
+            "about handling a specific type of request."
+        )
+
+        # Append to system message content blocks
+        new_content = list(request.system_message.content_blocks) + [
+            {"type": "text", "text": skills_addendum}
+        ]
+        new_system_message = SystemMessage(content=new_content)
+        modified_request = request.override(system_message=new_system_message, tools=filtered_tools)
+        return handler(modified_request)
+    
+    async def awrap_model_call(
+        self,
+        request: ModelRequest,
+        handler: Callable[[ModelRequest], ModelResponse],
+    ) -> ModelResponse:
+        """Async: Inject skill descriptions into system prompt."""
+
+        # 从 State 中读取已启用的工具列表
+        enabled_names = request.state.get("available_tools", [])
+        
+        # 过滤全局工具池
+        filtered_tools = [
+            t for t in request.tools 
+            if t.name in enabled_names or t.name == "load_skill"
+        ]
+
+        # Build the skills addendum
+        skills_addendum = ( 
+            f"\n\n## Available Skills\n\n{self.skills_prompt}\n\n"
+            "Use the load_skill tool when you need detailed information "
+            "about handling a specific type of request."
+        )
+
+        # Append to system message content blocks
+        new_content = list(request.system_message.content_blocks) + [
+            {"type": "text", "text": skills_addendum}
+        ]
+        new_system_message = SystemMessage(content=new_content)
+        modified_request = request.override(system_message=new_system_message, tools=filtered_tools)
+        return await handler(modified_request)
+    
 
 class FinalTranslateState(AgentState):
     user_lang_code: str

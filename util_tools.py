@@ -1,7 +1,54 @@
-from langchain.tools import tool
+from langgraph.types import Command
+from langchain.tools import tool, ToolRuntime
+from langchain.messages import ToolMessage
 
 from typing import Literal
 
+
+@tool
+def load_skill(skill_name: str, runtime: ToolRuntime) -> Command:
+    """Load the full content of a skill into the agent's context.
+
+    Use this when you need detailed information about how to handle a specific
+    type of request. This will provide you with comprehensive instructions,
+    policies, and guidelines for the skill area.
+
+    Args:
+        skill_name: The name of the skill to load (e.g., "expense_reporting", "travel_booking")
+    """
+    # Find and return the requested skill
+
+    from util_skills import SKILLS
+    
+    for skill in SKILLS:
+        if skill["name"] == skill_name:
+            skill_content = f"Loaded skill: {skill_name}\n\n{skill['content']}"
+
+            # Update state to track loaded skill
+            return Command(  
+                update={  
+                    "messages": [  
+                        ToolMessage(  
+                            content=skill_content,  
+                            tool_call_id=runtime.tool_call_id,  
+                        )  
+                    ],  
+                    "available_tools": skill["available_tools"],  
+                }  
+            )  
+
+    # Skill not found
+    available = ", ".join(s["name"] for s in SKILLS)
+    return Command(
+        update={
+            "messages": [
+                ToolMessage(
+                    content=f"Skill '{skill_name}' not found. Available skills: {available}",
+                    tool_call_id=runtime.tool_call_id,
+                )
+            ]
+        }
+    )
 
 @tool
 def tool_get_current_datetime(timezone: str = 'Asia/Shanghai') -> str:
