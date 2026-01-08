@@ -1,21 +1,7 @@
-from dotenv import load_dotenv
-import os
+from config import OLLAMA_BASE_URL, ZHIPU_BASE_URL, ZHIPU_API_KEY
 
 from langchain_ollama import ChatOllama, OllamaEmbeddings
 from langchain_openai import ChatOpenAI
-
-
-load_dotenv()
-
-# Ollama
-OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL")
-
-# ChatGPT Series
-ZHIPU_BASE_URL = os.getenv("ZHIPU_BASE_URL")
-ZHIPU_API_KEY = os.getenv("ZHIPU_API_KEY")
-
-QINIU_BASE_URL = os.getenv("QINIU_BASE_URL")
-QINIU_API_KEY = os.getenv("QINIU_API_KEY")
 
 
 # Configure model

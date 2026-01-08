@@ -3,8 +3,9 @@ import readline
 
 QUERY = input("请输入您的问题：")
 
-from util_tools import tool_get_current_datetime, tool_web_search, tool_get_video_text_content, tool_get_local_file_content, tool_get_current_weather
-from util_middlewares import ToolMonitoringMiddleware, SkillMiddleware, FinalTranslateMiddleware
+from skills import tools_list
+
+from util_middlewares import ToolMonitoringMiddleware, SkillsMiddleware, FinalTranslateMiddleware
 from util_models import model_instruct
 from util_prompts import DEFAULT_PROMPT
 
@@ -27,11 +28,11 @@ async def run_agent():
 
     agent = create_agent(
         model=model_instruct,
-        system_prompt= DEFAULT_PROMPT,
-        tools=[tool_get_current_datetime, tool_web_search, tool_get_video_text_content, tool_get_local_file_content, tool_get_current_weather], 
+        system_prompt=DEFAULT_PROMPT,
+        tools=tools_list, 
         middleware=[
             ToolMonitoringMiddleware(),
-            SkillMiddleware(),
+            SkillsMiddleware(),
             FinalTranslateMiddleware()
         ], 
         checkpointer=checkpointer, 
